@@ -1,2 +1,0 @@
-FLASK_APP=main.py
-FLASK_RUN_PORT=5001
