@@ -1,6 +1,8 @@
 from app import app
 from flask import jsonify, request
 
+from app.models import User
+
 
 @app.route('/')
 @app.route('/index')
@@ -22,21 +24,16 @@ def index():
 
 @app.route('/login', methods=['POST'])
 def login():
-    errors = []
-    username = request.form['username']
-    password = request.form['password']
-    if username is None or username == '':
-        errors.append('Введите имя пользователя')
-    if len(username) > 32:
-        errors.append('Слишком длинное имя пользователя')
-    if password is None or password == '':
-        errors.append('Введите пароль')
-    if len(password) > 32:
-        errors.append('Слишком длинный пароль')
-    if len(errors) > 0:
-        return jsonify(errors=errors)
-    else:
+    username = request.json['username']
+    password = request.json['password']
+    remember_me = request.json['rememberMe']
+    user = User(username, password)
+    validate, errors = user.login_validate()
+    if validate:
         if username == 'test' and password == '123':
-            return jsonify(message='Вы успешно вошли')
+            return jsonify(message=f'Вы успешно вошли {"и система Вас запомнила!" if remember_me else ""}')
         else:
-            return jsonify(message='Проверьте имя пользователя и пароль'), 403
+            return jsonify(errors=['Проверьте имя пользователя и пароль']), 403
+    else:
+        return jsonify(errors=errors), 422
+
