@@ -1,7 +1,6 @@
-from app import app
-from flask import jsonify, request
-
-from app.models import User
+from app import app, db
+from flask import jsonify, make_response, g
+from datetime import datetime, timezone
 
 
 @app.route('/')
@@ -22,18 +21,7 @@ def index():
     return jsonify(user=user, posts=posts)
 
 
-@app.route('/login', methods=['POST'])
-def login():
-    username = request.json['username']
-    password = request.json['password']
-    remember_me = request.json['rememberMe']
-    user = User(username, password)
-    validate, errors = user.login_validate()
-    if validate:
-        if username == 'test' and password == '123':
-            return jsonify(message=f'Вы успешно вошли {"и система Вас запомнила!" if remember_me else ""}')
-        else:
-            return jsonify(errors=['Проверьте имя пользователя и пароль']), 403
-    else:
-        return jsonify(errors=errors), 422
+@app.errorhandler(404)
+def not_found(error):
+    return make_response(jsonify(error='Страница не найдена'), 404)
 
