@@ -1,8 +1,8 @@
-"""Таблицы с пользователями, друзьями, постами и лайками
+"""User, friends, post, likes, comment tables
 
-Revision ID: f6916db7c06e
+Revision ID: a47651adf415
 Revises: 
-Create Date: 2024-05-09 23:14:57.752900
+Create Date: 2024-05-11 18:33:44.688158
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'f6916db7c06e'
+revision = 'a47651adf415'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -69,6 +69,21 @@ def upgrade():
         batch_op.create_index(batch_op.f('ix_post_publication_date'), ['publication_date'], unique=False)
         batch_op.create_index(batch_op.f('ix_post_user_id'), ['user_id'], unique=False)
 
+    op.create_table('comment',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('text', sa.String(length=500), nullable=False),
+    sa.Column('date', sa.DateTime(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('post_id', sa.Integer(), nullable=False),
+    sa.ForeignKeyConstraint(['post_id'], ['post.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    with op.batch_alter_table('comment', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_comment_date'), ['date'], unique=False)
+        batch_op.create_index(batch_op.f('ix_comment_post_id'), ['post_id'], unique=False)
+        batch_op.create_index(batch_op.f('ix_comment_user_id'), ['user_id'], unique=False)
+
     op.create_table('likes',
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('post_id', sa.Integer(), nullable=False),
@@ -89,6 +104,12 @@ def downgrade():
         batch_op.drop_index(batch_op.f('ix_likes_date'))
 
     op.drop_table('likes')
+    with op.batch_alter_table('comment', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_comment_user_id'))
+        batch_op.drop_index(batch_op.f('ix_comment_post_id'))
+        batch_op.drop_index(batch_op.f('ix_comment_date'))
+
+    op.drop_table('comment')
     with op.batch_alter_table('post', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_post_user_id'))
         batch_op.drop_index(batch_op.f('ix_post_publication_date'))

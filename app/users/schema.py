@@ -1,6 +1,5 @@
 from marshmallow import Schema, fields, validate, ValidationError
 from datetime import date
-
 from marshmallow.validate import Validator
 
 
@@ -18,21 +17,6 @@ class NotSpaces(Validator):
     def __call__(self, string):
         if " " in string:
             raise ValidationError(self.message)
-
-
-class LoginSchema(Schema):
-    username = fields.Str(
-        required=True, validate=validate.Length(
-            min=3, max=32, error="Длина имени должна быть больше 3 и меньше 32 символов"),
-        error_messages={"required": "Введите имя пользователя",
-                        "null": "Введите имя пользователя", "invalid": "Проверьте имя пользователя"}
-    )
-    password = fields.Str(required=True, validate=validate.Length(
-        min=8, max=32, error="Длина пароля должна быть больше 8 и меньше 32 символов"),
-                          error_messages={"required": "Введите пароль", "null": "Введите пароль",
-                                          "invalid": "Проверьте пароль"}
-                          )
-    remember_me = fields.Bool(load_default=False, error_messages={"invalid": "Некорректное значение"})
 
 
 class UserSchema(Schema):
@@ -93,6 +77,11 @@ class UserSchema(Schema):
                                                   error="Информация об увлечениях не может содержать больше 500 "
                                                         "символов")
                          )
+    skills = fields.Str(allow_none=True,
+                        validate=validate.Length(max=100,
+                                                 error="Информация о навыках не может содержать больше 500 "
+                                                       "символов")
+                        )
 
 
 class UserUpdateSchema(UserSchema):
@@ -120,16 +109,3 @@ class UserUpdateSchema(UserSchema):
         error_messages={"required": "Введите Вашу фамилию",
                         "null": "Введите Вашу фамилию", "invalid": "Проверьте фамилию"}
     )
-
-
-class PostSchema(Schema):
-    text = fields.Str(required=True, validate=[validate.Length(
-        min=3, max=500, error="Длина текста не может быть меньше 3 или больше 500 символов")],
-                      error_messages={"required": "Введите текст новости",
-                                      "null": "Введите текст новости", "invalid": "Проверьте текст новости"})
-    hashtags = fields.Str(required=True, validate=[validate.Length(
-        min=3, max=100, error="Длина хэштегов не может быть меньше 3 или больше 100 символов")],
-                          error_messages={"required": "Введите хэштеги",
-                                          "null": "Введите хэштеги", "invalid": "Проверьте хэштеги"})
-    by_user = fields.Bool(load_default=True, error_messages={"invalid": "Некорректное значение"}),
-    user_id = fields.Integer(error_messages={"invalid": "Проверьте автора"})

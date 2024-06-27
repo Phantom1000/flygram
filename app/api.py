@@ -1,7 +1,12 @@
 from flask_restful import Api
 from flask import jsonify, make_response
-from app.resources.users import TokenAPI, UserAPI, UsersAPI, FriendsAPI
-from app.resources.posts import PostAPI, PostsAPI, LikesAPI
+from app.auth.router import TokenAPI
+from app.users.router import UsersAPI, UserAPI, FriendsAPI
+from app.posts.router import PostAPI, PostsAPI, LikesAPI
+from app.comments.router import CommentsAPI, CommentAPI
+from app.communities.router import CommunitiesAPI, CommunityAPI, MembersAPI
+from app.messages.router import MessagesAPI
+from app.vacancies.router import VacanciesAPI, VacancyApi
 
 
 class FlyApi(Api):
@@ -15,6 +20,7 @@ class FlyApi(Api):
             422: e.description,
             405: 'Метод запроса не поддерживается',
             415: 'Запрос не поддерживается',
+            500: 'Произошла непредвиденная ошибка'
         }
         for code, response in responses.items():
             if code == e.code:
@@ -28,3 +34,11 @@ class FlyApi(Api):
         self.add_resource(PostsAPI, '/posts', endpoint='posts')
         self.add_resource(PostAPI, '/post/<int:post_id>', endpoint='post')
         self.add_resource(LikesAPI, '/like/<int:post_id>', endpoint='like')
+        self.add_resource(CommentsAPI, '/comments', endpoint='comments')
+        self.add_resource(CommentAPI, '/comment/<int:comment_id>', endpoint='comment')
+        self.add_resource(CommunitiesAPI, '/communities', endpoint='communities')
+        self.add_resource(CommunityAPI, '/community/<int:community_id>', endpoint='community')
+        self.add_resource(MembersAPI, '/members/<int:community_id>', endpoint='members')
+        self.add_resource(MessagesAPI, '/messages', endpoint='messages')
+        self.add_resource(VacanciesAPI, '/vacancies', endpoint='vacancies')
+        self.add_resource(VacancyApi, '/vacancy/<int:vacancy_id>', endpoint='vacancy')
