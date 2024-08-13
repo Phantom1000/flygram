@@ -39,6 +39,6 @@
 - Установить Docker
 - В docker-compose.yml указать путь до папки с Frontend
 - Запустить контейнеры с помощью команды:
-    ```sh
-    docker compose up -d
-    ```
+```sh
+docker compose up -d
+```
