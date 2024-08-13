@@ -1,21 +1,47 @@
+from abc import ABC
+
+import phonenumbers
 from marshmallow import Schema, fields, validate, ValidationError
-from datetime import date
+from datetime import date, datetime
 from marshmallow.validate import Validator
 
 
-def validate_after_now(check_date):
+def validate_after_now(check_date: datetime):
     if check_date > date.today():
         raise ValidationError("Дата рождения не может быть больше текущей")
 
 
-class NotSpaces(Validator):
+class BaseValidator(Validator, ABC):
+    def __init__(self, message: str | None = None):
+        if message:
+            self.message = message
+
+
+class NotSpaces(BaseValidator):
     message = "Поле не должно содержать пробелы"
 
-    def __init__(self, message):
-        self.message = message
-
-    def __call__(self, string):
+    def __call__(self, string: str):
         if " " in string:
+            raise ValidationError(self.message)
+
+
+class OnlyAlphaNum(BaseValidator):
+    message = "Поле может содержать только буквы или цифры"
+
+    def __call__(self, string: str):
+        if not string.isalnum():
+            raise ValidationError(self.message)
+
+
+class PhoneNumberValidator(BaseValidator):
+    message = "Проверьте номер телефона"
+
+    def __call__(self, string: str):
+        try:
+            phone_number = phonenumbers.parse(string)
+            if not phonenumbers.is_valid_number(phone_number):
+                raise ValidationError(self.message)
+        except phonenumbers.phonenumberutil.NumberParseException:
             raise ValidationError(self.message)
 
 
@@ -23,7 +49,7 @@ class UserSchema(Schema):
     username = fields.Str(
         required=True, validate=[validate.Length(
             min=3, max=32, error="Длина имени пользователя должна быть больше 3 и меньше 32 символов"),
-            NotSpaces(message="Имя пользователя не должно содержать пробелы")],
+            OnlyAlphaNum(message="Имя пользователя может содержать только буквы или цифры")],
         error_messages={"required": "Введите имя пользователя",
                         "null": "Введите имя пользователя", "invalid": "Проверьте имя пользователя"}
     )
@@ -50,10 +76,10 @@ class UserSchema(Schema):
         error_messages={"required": "Введите Вашу фамилию",
                         "null": "Введите Вашу фамилию", "invalid": "Проверьте фамилию"}
     )
-    phone_number = fields.Str(allow_none=True,
-                              validate=validate.Regexp(
-                                  regex=r'^(\+7|7|8)?[\s\-]?\(?[489][0-9]{2}\)?[\s\-]?[0-9]{3}[\s\-]?[0-9]{2}[\s\-]?['
-                                        r'0-9]{2}$', error="Проверьте номер телефона")
+    phone_number = fields.Str(allow_none=True, validate=PhoneNumberValidator()
+                              # validate=validate.Regexp(
+                              #     regex=r'^(\+7|7|8)?[\s\-]?\(?[489][0-9]{2}\)?[\s\-]?[0-9]{3}[\s\-]?[0-9]{2}[\s\-]?['
+                              #           r'0-9]{2}$', error="Проверьте номер телефона")
                               )
     date_birth = fields.Date(allow_none=True, validate=validate_after_now,
                              error_messages={"invalid": "Проверьте дату рождения"})

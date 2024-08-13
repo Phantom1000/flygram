@@ -3,3 +3,8 @@ app/__pycache__
 .venv
 .idea
 .flaskenv
+certs
+.env
+.docker.env
+logs
+sql

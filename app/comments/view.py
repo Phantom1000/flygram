@@ -1,22 +1,20 @@
 from flask import request, abort, g
-from flask_restful import Resource
+from flask.views import MethodView
 from marshmallow import ValidationError
 
 from app.auth import token_auth
-from app.comments.repository import CommentRepository
 from app.comments.schema import CommentSchema
-from app.comments.service import CommentService, CommentServiceInterface
-from app.posts.repository import PostRepository
-from app.users.repository import UserRepository
+from app.comments.service import CommentServiceInterface
 
 
-class CommentsAPI(Resource):
-    method_decorators = [token_auth.login_required]
+class CommentsAPI(MethodView):
+    init_every_request = False
+    decorators = [token_auth.login_required]
 
     service: CommentServiceInterface
 
-    def __init__(self):
-        self.service = CommentService(CommentRepository(), PostRepository(), UserRepository())
+    def __init__(self, service: CommentServiceInterface):
+        self.service = service
 
     def get(self):
         """Получение списка комментариев к публикации"""
@@ -40,13 +38,14 @@ class CommentsAPI(Resource):
             abort(422, err.messages)
 
 
-class CommentAPI(Resource):
-    method_decorators = [token_auth.login_required]
+class CommentAPI(MethodView):
+    init_every_request = False
+    decorators = [token_auth.login_required]
 
     service: CommentServiceInterface
 
-    def __init__(self):
-        self.service = CommentService(CommentRepository(), PostRepository(), UserRepository())
+    def __init__(self, service: CommentServiceInterface):
+        self.service = service
 
     def put(self, comment_id):
         """Редактирование комментария"""

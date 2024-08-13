@@ -1,9 +1,8 @@
-from flask_httpauth import HTTPTokenAuth
-from app.models import User
-from app import db
 import jwt
 from flask import current_app as app, abort, g
-from app.users.repository import UserRepository, UserRepositoryInterface
+from flask_httpauth import HTTPTokenAuth
+
+from app.models import User
 
 token_auth = HTTPTokenAuth(scheme='Bearer')
 
@@ -12,11 +11,10 @@ token_auth = HTTPTokenAuth(scheme='Bearer')
 def verify_token(token):
     try:
         payload = jwt.decode(token, app.config.get('SECRET_KEY'), algorithms=["HS256"])
-        repository: UserRepositoryInterface = UserRepository()
-        user: User = repository.get_by_id(payload["id"])
+        user: User = app.user_repo.get_by_id(payload["id"])
         if user:
             g.current_user = user
-            repository.update_last_seen(user)
+            app.user_repo.update_last_seen(user)
             return user
         else:
             return False

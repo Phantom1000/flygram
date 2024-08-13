@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Двухфакторная аутентификация</title>
+</head>
+<body>
+    <p>Дорогой {{ user.username }},</p>
+    <p>Код авторизации для Вашего устройства:</p>
+    <p style="font-weight: bold; font-size: 1.5rem;">{{ code }}</p>
+    <p>Если вы не запрашивали код, то измените пароль для предотвращения доступа к Вашему аккаунту.</p>
+    <p>С уважением,</p>
+    <p>Команда {{ config.APP_NAME }}</p>
+    <p>Пожалуйста, не отвечайте на это сообщение</p>
+</body>
+</html>

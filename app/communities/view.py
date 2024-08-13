@@ -1,8 +1,9 @@
 from flask import request, abort, g
-from flask_restful import Resource
+from flask.views import MethodView
 from marshmallow import ValidationError
 from werkzeug.utils import secure_filename
 
+from app import cache
 from app.auth import token_auth
 from app.communities.repository import CommunityRepository
 from app.communities.schema import CommunitySchema
@@ -11,14 +12,16 @@ from app.users.repository import UserRepository
 from app.utils import allowed_file
 
 
-class CommunitiesAPI(Resource):
-    method_decorators = [token_auth.login_required]
+class CommunitiesAPI(MethodView):
+    init_every_request = False
+    decorators = [token_auth.login_required]
 
     service: CommunityServiceInterface
 
-    def __init__(self):
-        self.service = CommunityService(CommunityRepository(), UserRepository())
+    def __init__(self, service: CommunityServiceInterface):
+        self.service = service
 
+    @cache.cached(timeout=120)
     def get(self):
         """Получение списка сообществ"""
         page = request.args.get('page', 1, type=int)
@@ -51,13 +54,14 @@ class CommunitiesAPI(Resource):
             abort(422, err.messages)
 
 
-class CommunityAPI(Resource):
-    method_decorators = [token_auth.login_required]
+class CommunityAPI(MethodView):
+    init_every_request = False
+    decorators = [token_auth.login_required]
 
     service: CommunityServiceInterface
 
-    def __init__(self):
-        self.service = CommunityService(CommunityRepository(), UserRepository())
+    def __init__(self, service: CommunityServiceInterface):
+        self.service = service
 
     def get(self, community_id):
         """Получение сообщества по идентификатору"""
@@ -89,13 +93,14 @@ class CommunityAPI(Resource):
         return {'message': 'Сообщество успешно удалено'}
 
 
-class MembersAPI(Resource):
-    method_decorators = [token_auth.login_required]
+class MembersAPI(MethodView):
+    init_every_request = False
+    decorators = [token_auth.login_required]
 
     service: CommunityServiceInterface
 
-    def __init__(self):
-        self.service = CommunityService(CommunityRepository(), UserRepository())
+    def __init__(self, service: CommunityServiceInterface):
+        self.service = service
 
     def get(self, community_id):
         """Получение списка участников сообщества"""

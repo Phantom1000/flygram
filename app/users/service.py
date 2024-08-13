@@ -88,7 +88,8 @@ class UserService(UserServiceInterface):
             user = self.users_repository.get_by_username(username)
         return self.users_repository.model_to_dict(user)
 
-    def get_users(self, filters: dict, page: int, per_page: int, vacancy_id: int, recommended: bool = False) -> dict:
+    def get_users(self, filters: dict, page: int, per_page: int, vacancy_id: int | None = None,
+                  recommended: bool = False) -> dict:
         if recommended:
             return self.get_recommended_friends(page, per_page)
         if vacancy_id:

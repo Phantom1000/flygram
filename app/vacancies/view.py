@@ -1,23 +1,23 @@
 from flask import request, abort, g
-from flask_restful import Resource
+from flask.views import MethodView
 from marshmallow import ValidationError
-from werkzeug.utils import secure_filename
 
+from app import cache
 from app.auth import token_auth
-from app.vacancies.repository import VacancyRepository
 from app.vacancies.schema import VacancySchema
-from app.vacancies.service import VacancyService, VacancyServiceInterface
-from app.users.repository import UserRepository
+from app.vacancies.service import VacancyServiceInterface
 
 
-class VacanciesAPI(Resource):
-    method_decorators = [token_auth.login_required]
+class VacanciesAPI(MethodView):
+    init_every_request = False
+    decorators = [token_auth.login_required]
 
     service: VacancyServiceInterface
 
-    def __init__(self):
-        self.service = VacancyService(VacancyRepository(), UserRepository())
+    def __init__(self, service: VacancyServiceInterface):
+        self.service = service
 
+    @cache.cached(timeout=120)
     def get(self):
         """Получение списка вакансий"""
         page = request.args.get('page', 1, type=int)
@@ -42,13 +42,14 @@ class VacanciesAPI(Resource):
             abort(422, err.messages)
 
 
-class VacancyApi(Resource):
-    method_decorators = [token_auth.login_required]
+class VacancyApi(MethodView):
+    init_every_request = False
+    decorators = [token_auth.login_required]
 
     service: VacancyServiceInterface
 
-    def __init__(self):
-        self.service = VacancyService(VacancyRepository(), UserRepository())
+    def __init__(self, service: VacancyServiceInterface):
+        self.service = service
 
     def get(self, vacancy_id):
         """Получение отдельной вакансии по идентификатору"""

@@ -3,13 +3,16 @@ from app.models import User, Vacancy
 from app.vacancies.repository import VacancyRepository
 from app.users.repository import UserRepository
 from app.vacancies.service import VacancyService
-from app import app, db
+from app import create_app, db
 from flask import g
+
+from config import TestConfig
 
 
 class MyTestCase(TestCase):
     def setUp(self):
-        self.app_context = app.app_context()
+        self.app = create_app(TestConfig)
+        self.app_context = self.app.app_context()
         self.service = VacancyService(VacancyRepository(), UserRepository())
         self.app_context.push()
         db.create_all()
@@ -20,7 +23,7 @@ class MyTestCase(TestCase):
         self.app_context.pop()
 
     def test_get_vacancies(self):
-        with app.app_context(), app.test_request_context():
+        with self.app.app_context(), self.app.test_request_context():
             user1: User = User(username="ivan", email="ivan@example.com", firstname="Иван", lastname="Петров")
             vacancy1: Vacancy = Vacancy(description="В компанию требуется программист")
             vacancy1.employer = user1
@@ -30,20 +33,20 @@ class MyTestCase(TestCase):
             db.session.add_all([user1, user2, vacancy1, vacancy2])
             db.session.commit()
             g.current_user = user1
-            result: dict = self.service.get_vacancies("ivan", {}, 1, 3)
+            result: dict = self.service.get_vacancies("ivan", {}, 1, 3, False)
             self.assertEqual(len(result["items"]), 1)
             self.assertEqual(result["items"][0]["description"], "В компанию требуется программист")
-            result: dict = self.service.get_vacancies("petr", {}, 1, 3)
+            result: dict = self.service.get_vacancies("petr", {}, 1, 3, False)
             self.assertEqual(len(result["items"]), 1)
             self.assertEqual(result["items"][0]["description"], "В компанию требуется тестировщик")
-            result: dict = self.service.get_vacancies(None, {"description": "тест"}, 1, 3)
+            result: dict = self.service.get_vacancies(None, {"description": "тест"}, 1, 3, False)
             self.assertEqual(len(result["items"]), 1)
             self.assertEqual(result["items"][0]["description"], "В компанию требуется тестировщик")
-            result: dict = self.service.get_vacancies(None, {}, 1, 3)
+            result: dict = self.service.get_vacancies(None, {}, 1, 3, False)
             self.assertEqual(len(result["items"]), 2)
 
     def test_add_vacancy(self):
-        with app.app_context(), app.test_request_context():
+        with self.app.app_context(), self.app.test_request_context():
             user: User = User(username="ivan", email="ivan@example.com", firstname="Иван", lastname="Петров")
             db.session.add(user)
             db.session.commit()
@@ -56,7 +59,7 @@ class MyTestCase(TestCase):
             self.assertEqual(vacancy.employer, user)
 
     def test_update_community(self):
-        with app.app_context(), app.test_request_context():
+        with self.app.app_context(), self.app.test_request_context():
             user: User = User(username="ivan", email="ivan@example.com", firstname="Иван", lastname="Петров")
             vacancy: Vacancy = Vacancy(description="Ищем продавца")
             vacancy.employer = user
@@ -68,7 +71,7 @@ class MyTestCase(TestCase):
             self.assertEqual(vacancy.description, "Требуется работник склада")
 
     def test_delete_community(self):
-        with app.app_context(), app.test_request_context():
+        with self.app.app_context(), self.app.test_request_context():
             user: User = User(username="ivan", email="ivan@example.com", firstname="Иван", lastname="Петров")
             vacancy: Vacancy = Vacancy(description="Ищем продавца")
             vacancy.employer = user

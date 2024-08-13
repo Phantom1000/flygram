@@ -1,25 +1,26 @@
 from flask import request, abort, g
-from flask_restful import Resource
+from flask.views import MethodView
 from marshmallow import ValidationError
 from werkzeug.utils import secure_filename
 
 from app.auth import token_auth
-from app.posts.repository import PostRepository
 from app.posts.schema import PostSchema
-from app.posts.service import PostServiceInterface, PostService
-from app.users.repository import UserRepository
-from app.communities.repository import CommunityRepository
+from app.posts.service import PostServiceInterface
 from app.utils import allowed_file
+from app import cache
 
 
-class PostsAPI(Resource):
-    method_decorators = [token_auth.login_required]
+class PostsAPI(MethodView):
+    init_every_request = False
+
+    decorators = [token_auth.login_required]
 
     service: PostServiceInterface
 
-    def __init__(self):
-        self.service = PostService(PostRepository(), UserRepository(), CommunityRepository())
+    def __init__(self, service: PostServiceInterface):
+        self.service = service
 
+    @cache.cached(timeout=120)
     def get(self):
         """Получение списка публикаций"""
         page = request.args.get('page', 1, type=int)
@@ -55,13 +56,15 @@ class PostsAPI(Resource):
             abort(422, err.messages)
 
 
-class PostAPI(Resource):
-    method_decorators = [token_auth.login_required]
+class PostAPI(MethodView):
+    init_every_request = False
+
+    decorators = [token_auth.login_required]
 
     service: PostServiceInterface
 
-    def __init__(self):
-        self.service = PostService(PostRepository(), UserRepository(), CommunityRepository())
+    def __init__(self, service: PostServiceInterface):
+        self.service = service
 
     def get(self, post_id):
         """Получение отдельной публикации по идентификатору"""
@@ -93,13 +96,15 @@ class PostAPI(Resource):
         return {'message': 'Запись успешно удалена'}
 
 
-class LikesAPI(Resource):
-    method_decorators = [token_auth.login_required]
+class LikesAPI(MethodView):
+    init_every_request = False
+
+    decorators = [token_auth.login_required]
 
     service: PostServiceInterface
 
-    def __init__(self):
-        self.service = PostService(PostRepository(), UserRepository(), CommunityRepository())
+    def __init__(self, service: PostServiceInterface):
+        self.service = service
 
     def post(self, post_id):
         """Добавление оценки публикации"""

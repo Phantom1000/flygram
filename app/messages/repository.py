@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 
 import sqlalchemy as sa
+import sqlalchemy.orm as so
 
 from app import db
 from app.models import Message, User
@@ -39,7 +40,8 @@ class MessageRepository(MessageRepositoryInterface):
 
     def paginate_by_filters(
             self, page: int, per_page: int, query: sa.Select[tuple[Message]] = sa.select(Message)) -> dict:
-        return paginate(query, Message, self, {}, page, per_page, 'messages', Message.date)
+        return paginate(query.options(so.joinedload(Message.sender), so.joinedload(Message.recipient)), Message, self,
+                        {}, page, per_page, 'messages', Message.date)
 
     def model_to_dict(self, model: Message) -> dict:
         data = {

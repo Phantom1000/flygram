@@ -1,21 +1,23 @@
-from flask_restful import Resource
 from flask import request, abort, g
-from app.users.schema import UserSchema, UserUpdateSchema
+from flask.views import MethodView
 from marshmallow import ValidationError
-from app.auth import token_auth
 from werkzeug.utils import secure_filename
+
+from app import cache
+from app.auth import token_auth
+from app.users.schema import UserSchema, UserUpdateSchema
+from app.users.service import UserServiceInterface
 from app.utils import allowed_file
-from app.users.service import UserServiceInterface, UserService
-from app.users.repository import UserRepository
 
 
-class UserAPI(Resource):
-    method_decorators = [token_auth.login_required]
+class UserAPI(MethodView):
+    init_every_request = False
+    decorators = [token_auth.login_required]
 
     service: UserServiceInterface
 
-    def __init__(self):
-        self.service = UserService(UserRepository())
+    def __init__(self, service: UserServiceInterface):
+        self.service = service
 
     def get(self, username: str):
         """Запрос пользователя по имени в приложении"""
@@ -30,7 +32,10 @@ class UserAPI(Resource):
         try:
             if request.args and request.args['update'] == 'password':
                 schema = UserUpdateSchema(only=['password'])
-                data = schema.load({'password': request.form['new_password'].strip()})
+                password = request.form.get('new_password')
+                if not password:
+                    abort(400)
+                data = schema.load({'password': password.strip()})
                 response: dict = self.service.update_password(username, request.form.get('password'), data['password'])
             else:
                 schema = UserUpdateSchema(exclude=['password'])
@@ -54,14 +59,15 @@ class UserAPI(Resource):
         return {'message': 'Аккаунт успешно удален'}
 
 
-class UsersAPI(Resource):
-    method_decorators = {'get': [token_auth.login_required]}
-
+class UsersAPI(MethodView):
+    init_every_request = False
     service: UserServiceInterface
 
-    def __init__(self):
-        self.service = UserService(UserRepository())
+    def __init__(self, service: UserServiceInterface):
+        self.service = service
 
+    @cache.cached(timeout=120)
+    @token_auth.login_required
     def get(self):
         """Получение списка пользователей"""
         page = request.args.get('page', 1, type=int)
@@ -102,13 +108,14 @@ class UsersAPI(Resource):
             abort(422, err.messages)
 
 
-class FriendsAPI(Resource):
-    method_decorators = [token_auth.login_required]
+class FriendsAPI(MethodView):
+    init_every_request = False
+    decorators = [token_auth.login_required]
 
     service: UserServiceInterface
 
-    def __init__(self):
-        self.service = UserService(UserRepository())
+    def __init__(self, service: UserServiceInterface):
+        self.service = service
 
     def get(self, username):
         """Получение списка друзей пользователя"""

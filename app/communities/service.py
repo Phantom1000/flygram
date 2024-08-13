@@ -114,7 +114,7 @@ class CommunityService(CommunityServiceInterface):
             self.upload_image(community, image)
         return self.community_repository.model_to_dict(community)
 
-    def get_communities(self, username: str | None, community_type: str, filters: dict, page: int,
+    def get_communities(self, username: str | None, community_type: str | None, filters: dict, page: int,
                         per_page: int) -> dict:
         query = sa.select(Community)
         if username:

@@ -1,23 +1,20 @@
-import os
 from unittest import TestCase, main
 
 from flask import g
 
-from app import app, db
+from app import create_app, db
+from app.communities.repository import CommunityRepository
 from app.models import Post, User, Community
 from app.posts.repository import PostRepository
-from app.users.repository import UserRepository
-from app.communities.repository import CommunityRepository
 from app.posts.service import PostService
-from datetime import datetime
-
-
-os.environ['DATABASE_URI'] = 'sqlite://'
+from app.users.repository import UserRepository
+from config import TestConfig
 
 
 class PostModelCase(TestCase):
     def setUp(self):
-        self.app_context = app.app_context()
+        self.app = create_app(TestConfig)
+        self.app_context = self.app.app_context()
         self.service = PostService(PostRepository(), UserRepository(), CommunityRepository())
         self.app_context.push()
         db.create_all()
@@ -28,7 +25,7 @@ class PostModelCase(TestCase):
         self.app_context.pop()
 
     def test_get_post(self):
-        with app.app_context(), app.test_request_context():
+        with self.app.app_context(), self.app.test_request_context():
             user: User = User(username="ivan", email="ivan@example.com", firstname="Иван", lastname="Петров")
             post: Post = Post(hashtags="новости", text="тестирование публикации")
             post.author = user
@@ -40,7 +37,7 @@ class PostModelCase(TestCase):
             self.assertEqual(result["text"], "тестирование публикации")
 
     def test_get_posts(self):
-        with app.app_context(), app.test_request_context():
+        with self.app.app_context(), self.app.test_request_context():
             user1: User = User(username="ivan", email="ivan@example.com", firstname="Иван", lastname="Петров")
             user2: User = User(username="petr", email="petr@example.com", firstname="Петр", lastname="Петров")
             post1: Post = Post(hashtags="новости", text="тестирование публикации")
@@ -76,7 +73,7 @@ class PostModelCase(TestCase):
             self.assertEqual(result["items"][0]["text"], "новость дня")
 
     def test_get_community_posts(self):
-        with app.app_context(), app.test_request_context():
+        with self.app.app_context(), self.app.test_request_context():
             user: User = User(username="ivan", email="ivan@example.com", firstname="Иван", lastname="Петров")
             community: Community = Community(name="новости", description="самые последние новости")
             community.owner = user
@@ -102,7 +99,7 @@ class PostModelCase(TestCase):
             self.assertEqual(result["items"][0]["text"], "тестирование публикации")
 
     def test_add_post(self):
-        with app.app_context(), app.test_request_context():
+        with self.app.app_context(), self.app.test_request_context():
             user: User = User(username="ivan", email="ivan@example.com", firstname="Иван", lastname="Петров")
             db.session.add(user)
             db.session.commit()
@@ -114,7 +111,7 @@ class PostModelCase(TestCase):
             self.assertEqual(result["text"], "тестирование публикации")
 
     def test_update_post(self):
-        with app.app_context(), app.test_request_context():
+        with self.app.app_context(), self.app.test_request_context():
             user: User = User(username="ivan", email="ivan@example.com", firstname="Иван", lastname="Петров")
             post: Post = Post(hashtags="новости", text="тестирование публикации")
             post.author = user
@@ -127,7 +124,7 @@ class PostModelCase(TestCase):
             self.assertEqual(result["text"], "Новый текст")
 
     def test_like_post(self):
-        with app.app_context(), app.test_request_context():
+        with self.app.app_context(), self.app.test_request_context():
             user: User = User(username="ivan", email="ivan@example.com", firstname="Иван", lastname="Петров")
             post: Post = Post(hashtags="новости", text="тестирование публикации")
             post.author = user
@@ -140,7 +137,7 @@ class PostModelCase(TestCase):
             self.assertEqual(result["likes_count"], 1)
 
     def test_unlike_post(self):
-        with app.app_context(), app.test_request_context():
+        with self.app.app_context(), self.app.test_request_context():
             user: User = User(username="ivan", email="ivan@example.com", firstname="Иван", lastname="Петров")
             post: Post = Post(hashtags="новости", text="тестирование публикации")
             post.author = user
@@ -154,7 +151,7 @@ class PostModelCase(TestCase):
             self.assertEqual(result["likes_count"], 0)
 
     def test_delete_post(self):
-        with app.app_context(), app.test_request_context():
+        with self.app.app_context(), self.app.test_request_context():
             user: User = User(username="ivan", email="ivan@example.com", firstname="Иван", lastname="Петров")
             post: Post = Post(hashtags="новости", text="тестирование публикации")
             post.author = user
@@ -166,7 +163,7 @@ class PostModelCase(TestCase):
             self.assertEqual(result, None)
 
     def test_get_recommended_posts(self):
-        with app.app_context(), app.test_request_context():
+        with self.app.app_context(), self.app.test_request_context():
             user1: User = User(username="ivan", email="ivan@example.com", firstname="Иван", lastname="Петров")
             user2: User = User(username="petr", email="petr@example.com", firstname="Петр", lastname="Петров")
             user3: User = User(username="alex", email="alex@example.com", firstname="Александр", lastname="Сидоров")

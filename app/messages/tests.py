@@ -3,18 +3,18 @@ from unittest import TestCase, main
 
 from flask import g
 
-from app import app, db
+from app import create_app, db
 from app.messages.repository import MessageRepository
 from app.messages.service import MessageService
 from app.models import User, Message
 from app.users.repository import UserRepository
-
-os.environ['DATABASE_URI'] = 'sqlite://'
+from config import TestConfig
 
 
 class MessageModelCase(TestCase):
     def setUp(self):
-        self.app_context = app.app_context()
+        self.app = create_app(TestConfig)
+        self.app_context = self.app.app_context()
         self.service = MessageService(MessageRepository(), UserRepository())
         self.app_context.push()
         db.create_all()
@@ -25,7 +25,7 @@ class MessageModelCase(TestCase):
         self.app_context.pop()
 
     def test_get_messages(self):
-        with app.app_context(), app.test_request_context():
+        with self.app.app_context(), self.app.test_request_context():
             user1: User = User(username="ivan", email="ivan@example.com", firstname="Иван", lastname="Петров")
             user2: User = User(username="petr", email="petr@example.com", firstname="Петр", lastname="Иванов")
             user3: User = User(username="alex", email="alex@example.com", firstname="Алексей", lastname="Иванов")
@@ -60,7 +60,7 @@ class MessageModelCase(TestCase):
             self.assertEqual(result["items"][0]["recipient"], "ivan")
 
     def test_add_message(self):
-        with app.app_context(), app.test_request_context():
+        with self.app.app_context(), self.app.test_request_context():
             sender: User = User(username="ivan", email="ivan@example.com", firstname="Иван", lastname="Петров")
             recipient: User = User(username="petr", email="petr@example.com", firstname="Петр", lastname="Иванов")
             sender.following.add(recipient)

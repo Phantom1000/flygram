@@ -3,20 +3,20 @@ from unittest import TestCase, main
 
 import jwt
 
-from app import app, db
+from app import create_app, db
 from app.auth.repository import SessionRepository
 from app.auth.service import AuthService
 from app.auth.utils import generate_token
 from app.models import Session, User
 from app.users.repository import UserRepository
 from app.users.utils import set_password
-
-os.environ['DATABASE_URI'] = 'sqlite://'
+from config import TestConfig
 
 
 class AuthModelCase(TestCase):
     def setUp(self):
-        self.app_context = app.app_context()
+        self.app = create_app(TestConfig)
+        self.app_context = self.app.app_context()
         self.service = AuthService(UserRepository(), SessionRepository())
         self.app_context.push()
         db.create_all()
@@ -33,11 +33,11 @@ class AuthModelCase(TestCase):
         db.session.add(user)
         db.session.commit()
         token: str = generate_token(user.id, exp)
-        payload = jwt.decode(token, app.config.get('SECRET_KEY'), algorithms=['HS256'])
+        payload = jwt.decode(token, self.app.config.get('SECRET_KEY'), algorithms=['HS256'])
         self.assertEqual(payload['id'], 1)
 
     def test_login(self):
-        with app.app_context(), app.test_request_context():
+        with self.app.app_context(), self.app.test_request_context():
             user: User = User(username="test", email="test@example.com", firstname="Иван", lastname="Петров")
             set_password(user, "123123123")
             db.session.add(user)
@@ -48,7 +48,7 @@ class AuthModelCase(TestCase):
             self.assertEqual(data['user']['firstname'], 'Иван')
             self.assertEqual(data['user']['lastname'], 'Петров')
             self.assertEqual(data['user']['email'], 'test@example.com')
-            self.assertEqual(data['access_token'], generate_token(user.id, app.config.get('TOKEN_LIFETIME')))
+            self.assertEqual(data['access_token'], generate_token(user.id, self.app.config.get('TOKEN_LIFETIME')))
             session: Session = db.session.scalar(user.sessions.select())
             self.assertEqual(session, None)
             self.assertEqual(data['refresh_token'], None)
@@ -58,14 +58,14 @@ class AuthModelCase(TestCase):
             self.assertEqual(data['user']['firstname'], 'Иван')
             self.assertEqual(data['user']['lastname'], 'Петров')
             self.assertEqual(data['user']['email'], 'test@example.com')
-            self.assertEqual(data['access_token'], generate_token(user.id, app.config.get('TOKEN_LIFETIME')))
+            self.assertEqual(data['access_token'], generate_token(user.id, self.app.config.get('TOKEN_LIFETIME')))
             session: Session = db.session.scalar(user.sessions.select())
             self.assertEqual(session.platform, 'test_agent')
             self.assertEqual(session.ip, '1.1.1.1')
             self.assertEqual(data['refresh_token'], str(session.id))
 
     def test_refresh(self):
-        with app.app_context(), app.test_request_context():
+        with self.app.app_context(), self.app.test_request_context():
             user: User = User(username="test", email="test@example.com", firstname="Иван", lastname="Петров")
             set_password(user, "123123123")
             db.session.add(user)
@@ -76,10 +76,10 @@ class AuthModelCase(TestCase):
             self.assertEqual(data['user']['firstname'], 'Иван')
             self.assertEqual(data['user']['lastname'], 'Петров')
             self.assertEqual(data['user']['email'], 'test@example.com')
-            self.assertEqual(data['token'], generate_token(user.id, app.config.get('TOKEN_LIFETIME')))
+            self.assertEqual(data['token'], generate_token(user.id, self.app.config.get('TOKEN_LIFETIME')))
 
     def test_logout(self):
-        with app.app_context(), app.test_request_context():
+        with self.app.app_context(), self.app.test_request_context():
             user: User = User(username="test", email="test@example.com", firstname="Иван", lastname="Петров")
             set_password(user, "123123123")
             db.session.add(user)

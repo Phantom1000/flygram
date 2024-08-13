@@ -79,7 +79,8 @@ class PostRepository(PostRepositoryInterface):
 
     def paginate_by_filters(
             self, filters: dict, page: int, per_page: int, query: sa.Select[tuple[Post]] = sa.select(Post)) -> dict:
-        return paginate(query, Post, self, filters, page, per_page, 'posts', Post.publication_date)
+        return paginate(query.options(so.joinedload(Post.author)), Post, self, filters, page, per_page, 'posts',
+                        Post.publication_date)
 
     def get_following_posts(self, user: User) -> sa.Select[tuple[Post]]:
         author = so.aliased(User)
@@ -117,8 +118,8 @@ class PostRepository(PostRepositoryInterface):
     def get_posts_by_date_and_rating(self, date: datetime, rating: int):
         query = sa.select(Post).join(likes, likes.c.post_id == Post.id, isouter=True).where(
             sa.and_(Post.publication_date > date, sa.not_(Post.user_id == g.current_user.id))).group_by(
-                Post.id).having(
-                sa.and_(sa.func.count(likes.c.user_id) >= rating))
+            Post.id).having(
+            sa.and_(sa.func.count(likes.c.user_id) >= rating))
         # sa.not_(likes.c.user_id == g.current_user.id)
         result = db.session.scalars(query).all()
         return result

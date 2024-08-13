@@ -14,3 +14,12 @@ class LoginSchema(Schema):
                                           "invalid": "Проверьте пароль"}
                           )
     remember_me = fields.Bool(load_default=False, error_messages={"invalid": "Некорректное значение"})
+
+
+class CodeSchema(Schema):
+    code = fields.Integer(required=True, validate=validate.Range(
+        min=100_000, max=999_999, error="Код должен содержать 6 цифр"),
+                          error_messages={"required": "Введите код", "null": "Введите код",
+                                          "invalid": "Проверьте код"}
+                          )
+    remember_me = fields.Bool(load_default=False, error_messages={"invalid": "Некорректное значение"})

@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone, timedelta
 from typing import Optional
-
+from enum import Enum
 import sqlalchemy as sa
 import sqlalchemy.orm as so
 from flask import current_app as app
@@ -40,22 +40,25 @@ class Message(db.Model):
         index=True, default=lambda: datetime.now(timezone.utc))
     sender_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey("user.id", ondelete='cascade'), index=True)
     recipient_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey("user.id", ondelete='cascade'), index=True)
-    sender: so.Mapped['User'] = so.relationship(back_populates='sent_messages',
-                                                primaryjoin="Message.sender_id == User.id")
+    # sender: so.Mapped['User'] = so.relationship(back_populates='sent_messages',
+    #                                             primaryjoin="Message.sender_id == User.id")
+    # recipient: so.Mapped['User'] = so.relationship(back_populates='received_messages',
+    #                                                primaryjoin="Message.recipient_id == User.id")
+    sender: so.Mapped['User'] = so.relationship(back_populates='sent_messages', foreign_keys="Message.sender_id")
     recipient: so.Mapped['User'] = so.relationship(back_populates='received_messages',
-                                                   primaryjoin="Message.recipient_id == User.id")
+                                                   foreign_keys="Message.recipient_id")
 
 
 class User(db.Model):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     username: so.Mapped[str] = so.mapped_column(sa.String(32), index=True, unique=True)
     email: so.Mapped[str] = so.mapped_column(sa.String(100), index=True, unique=True)
-    firstname: so.Mapped[str] = so.mapped_column(sa.String(32))
-    lastname: so.Mapped[str] = so.mapped_column(sa.String(32))
+    firstname: so.Mapped[str] = so.mapped_column(sa.String(32), index=True)
+    lastname: so.Mapped[str] = so.mapped_column(sa.String(32), index=True)
     phone_number: so.Mapped[Optional[str]] = so.mapped_column(sa.String(20))
     date_birth: so.Mapped[Optional[datetime]] = so.mapped_column(sa.Date)
     avatar_url: so.Mapped[Optional[str]] = so.mapped_column(sa.String(100))
-    city: so.Mapped[Optional[str]] = so.mapped_column(sa.String(100))
+    city: so.Mapped[Optional[str]] = so.mapped_column(sa.String(100), index=True)
     address: so.Mapped[Optional[str]] = so.mapped_column(sa.String(100))
     education: so.Mapped[Optional[str]] = so.mapped_column(sa.String(100))
     career: so.Mapped[Optional[str]] = so.mapped_column(sa.String(100))
@@ -66,6 +69,9 @@ class User(db.Model):
         index=True, default=lambda: datetime.now(timezone.utc))
     last_seen: so.Mapped[datetime] = so.mapped_column(
         index=True, default=lambda: datetime.now(timezone.utc))
+    verified_email: so.Mapped[bool] = so.mapped_column(default=False, server_default=sa.sql.false())
+    two_factor_enabled: so.Mapped[bool] = so.mapped_column(default=False, server_default=sa.sql.false())
+    two_factor_code: so.Mapped[Optional[int]]
     posts: so.WriteOnlyMapped['Post'] = so.relationship(back_populates='author', passive_deletes=True)
     liked_posts: so.WriteOnlyMapped['Post'] = so.relationship(secondary=likes,
                                                               back_populates='liked_users', passive_deletes=True)
@@ -101,7 +107,7 @@ class Community(db.Model):
 
 
 class Post(db.Model):
-    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    id: so.Mapped[int] = so.mapped_column(primary_key=True, index=True)
     text: so.Mapped[str] = so.mapped_column(sa.String(500))
     image_url: so.Mapped[Optional[str]] = so.mapped_column(sa.String(100))
     hashtags: so.Mapped[str] = so.mapped_column(sa.String(100))
@@ -137,10 +143,11 @@ class Session(db.Model):
         timezone.utc) + timedelta(days=app.config.get('SESSION_LIFETIME')))
     user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id, ondelete='cascade'), index=True)
     user: so.Mapped[User] = so.relationship(back_populates='sessions')
+    created_at: so.Mapped[datetime] = so.mapped_column(index=True, default=lambda: datetime.now(timezone.utc))
 
 
 class Vacancy(db.Model):
-    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    id: so.Mapped[int] = so.mapped_column(primary_key=True, index=True)
     skills: so.Mapped[Optional[str]] = so.mapped_column(sa.String(100))
     description: so.Mapped[str] = so.mapped_column(sa.String(500))
     user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id, ondelete='cascade'), index=True)

@@ -3,18 +3,18 @@ from unittest import TestCase, main
 
 from flask import g
 
-from app import app, db
+from app import create_app, db
 from app.models import User
 from app.users.repository import UserRepository
 from app.users.service import UserService
 from app.users.utils import set_password, check_password
-
-os.environ['DATABASE_URI'] = 'sqlite://'
+from config import TestConfig
 
 
 class UserModelCase(TestCase):
     def setUp(self):
-        self.app_context = app.app_context()
+        self.app = create_app(TestConfig)
+        self.app_context = self.app.app_context()
         self.service = UserService(UserRepository())
         self.app_context.push()
         db.create_all()
@@ -25,7 +25,7 @@ class UserModelCase(TestCase):
         self.app_context.pop()
 
     def test_get_user(self):
-        with app.app_context(), app.test_request_context():
+        with self.app.app_context(), self.app.test_request_context():
             user: User = User(username="test", email="test@example.com", firstname="Иван", lastname="Петров")
             set_password(user, "123123123")
             db.session.add(user)
@@ -35,7 +35,7 @@ class UserModelCase(TestCase):
             self.assertEqual(result["email"], user.email)
 
     def test_get_users(self):
-        with app.app_context(), app.test_request_context():
+        with self.app.app_context(), self.app.test_request_context():
             user1: User = User(username="ivan", email="ivan@example.com", firstname="Иван", lastname="Петров")
             user2: User = User(username="petr", email="petr@example.com", firstname="Петр", lastname="Иванов")
             set_password(user1, "123123123")
@@ -50,7 +50,7 @@ class UserModelCase(TestCase):
             self.assertEqual(len(result["items"]), 1)
 
     def test_update_password(self):
-        with app.app_context(), app.test_request_context():
+        with self.app.app_context(), self.app.test_request_context():
             user: User = User(username="ivan", email="ivan@example.com", firstname="Иван", lastname="Петров")
             set_password(user, "123123123")
             db.session.add(user)
@@ -61,7 +61,7 @@ class UserModelCase(TestCase):
             self.assertTrue(check_password(user, "000000000"))
 
     def test_update_user(self):
-        with app.app_context(), app.test_request_context():
+        with self.app.app_context(), self.app.test_request_context():
             user: User = User(username="ivan", email="ivan@example.com", firstname="Иван", lastname="Петров")
             set_password(user, "123123123")
             db.session.add(user)
@@ -74,7 +74,7 @@ class UserModelCase(TestCase):
             self.assertNotEqual(user.lastname, "Петров")
 
     def test_add_user(self):
-        with app.app_context(), app.test_request_context():
+        with self.app.app_context(), self.app.test_request_context():
             result: dict = self.service.add_user({
                 "username": "petr",
                 "email": "petr@example.com",
@@ -90,7 +90,7 @@ class UserModelCase(TestCase):
             self.assertTrue(check_password(user, "123456789"))
 
     def test_delete_user(self):
-        with app.app_context(), app.test_request_context():
+        with self.app.app_context(), self.app.test_request_context():
             user: User = User(username="ivan", email="ivan@example.com", firstname="Иван", lastname="Петров")
             set_password(user, "123123123")
             db.session.add(user)
@@ -100,7 +100,7 @@ class UserModelCase(TestCase):
             self.assertEqual(user, None)
 
     def test_get_friends(self):
-        with app.app_context(), app.test_request_context():
+        with self.app.app_context(), self.app.test_request_context():
             user1: User = User(username="ivan", email="ivan@example.com", firstname="Иван", lastname="Петров")
             user2: User = User(username="petr", email="petr@example.com", firstname="Петр", lastname="Иванов")
             user3: User = User(username="cat", email="cat@example.com", firstname="Катя", lastname="Сидорова")
@@ -135,7 +135,7 @@ class UserModelCase(TestCase):
             self.assertEqual(len(user1_filter_friends["items"]), 1)
 
     def test_add_friend(self):
-        with app.app_context(), app.test_request_context():
+        with self.app.app_context(), self.app.test_request_context():
             user1: User = User(username="ivan", email="ivan@example.com", firstname="Иван", lastname="Петров")
             user2: User = User(username="petr", email="petr@example.com", firstname="Петр", lastname="Иванов")
             set_password(user1, "123123123")
@@ -152,7 +152,7 @@ class UserModelCase(TestCase):
             self.assertEqual(user2_followers["items"][0]["username"], "ivan")
 
     def test_accept_friend(self):
-        with app.app_context(), app.test_request_context():
+        with self.app.app_context(), self.app.test_request_context():
             user1: User = User(username="ivan", email="ivan@example.com", firstname="Иван", lastname="Петров")
             user2: User = User(username="petr", email="petr@example.com", firstname="Петр", lastname="Иванов")
             set_password(user1, "123123123")
@@ -169,7 +169,7 @@ class UserModelCase(TestCase):
             self.assertEqual(user1_friends["items"][0]["username"], "petr")
 
     def test_delete_friend(self):
-        with app.app_context(), app.test_request_context():
+        with self.app.app_context(), self.app.test_request_context():
             user1: User = User(username="ivan", email="ivan@example.com", firstname="Иван", lastname="Петров")
             user2: User = User(username="petr", email="petr@example.com", firstname="Петр", lastname="Иванов")
             set_password(user1, "123123123")

@@ -1,0 +1,87 @@
+version: "3.8"
+
+services:
+  backend:
+    container_name: flygram-app
+    build: .
+    env_file:
+      - .docker.env
+    restart: always
+    expose:
+      - 5000
+    volumes:
+      - .:/flygram
+    working_dir: /flygram
+    depends_on:
+      - db
+      - redis
+    command: ["./boot.sh"]
+
+  worker:
+    container_name: flygram-worker
+    build: .
+    env_file:
+      - .docker.env
+    restart: always
+    volumes:
+      - .:/flygram
+    working_dir: /flygram
+    depends_on:
+      - db
+      - redis
+    command: [ "./celery.sh", "celery" ]
+
+  db:
+    container_name: flygram-db
+    image: postgres:alpine
+    restart: always
+    environment:
+      POSTGRES_DB: 'flygram'
+      POSTGRES_USER: 'admin'
+      POSTGRES_PASSWORD: '094c87c0b131473aa30f9e9b41029b83'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:latest
+    container_name: flygram-redis
+    restart: always
+    depends_on:
+      - db
+    ports:
+      - "6379:6379"
+
+  flower:
+    build: .
+    env_file:
+      - .docker.env
+    container_name: flygram-flower
+    volumes:
+      - .:/flygram
+    working_dir: /flygram
+    depends_on:
+      - redis
+      - worker
+    ports:
+      - "5555:5555"
+    command: [ "./celery.sh", "flower" ]
+
+  frontend:
+    container_name: flygram-frontend
+    build: ../../Vue/flygram-app
+    volumes:
+      - ../../Vue/flygram-app/nginx.conf:/etc/nginx/conf.d/default.conf
+
+  reverse-proxy:
+    image: nginx:stable-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./certs:/certs
+    depends_on:
+      - backend
+      - frontend
+volumes:
+  pgdata:

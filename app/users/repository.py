@@ -100,6 +100,18 @@ class UserRepositoryInterface(ABC):
     def update_avatar_url(self, user: User, avatar_url: str) -> None:
         pass
 
+    @abstractmethod
+    def verify_email(self, user: User) -> None:
+        pass
+
+    @abstractmethod
+    def enable_two_factor(self, user: User) -> None:
+        pass
+
+    @abstractmethod
+    def disable_two_factor(self, user: User) -> None:
+        pass
+
 
 class UserRepository(UserRepositoryInterface):
     def get_users(self) -> list[User]:
@@ -236,6 +248,8 @@ class UserRepository(UserRepositoryInterface):
             'following_count': str(self.get_following_count(model)),
             'followers_count': str(self.get_followers_count(model)),
             'friends_count': str(self.get_friends_count(model)),
+            'verified_email': model.verified_email,
+            'two_factor_enabled': model.two_factor_enabled,
             'links': {
                 'self': url_for('user', username=model.username),
                 'avatar': model.avatar_url
@@ -245,7 +259,19 @@ class UserRepository(UserRepositoryInterface):
 
     def update_model_from_dict(self, model: User, data: dict) -> None:
         for field in ['username', 'email', 'firstname', 'lastname', 'phone_number', 'date_birth', 'city',
-                      'address', 'education', 'career', 'skills', 'hobbies']:
+                      'address', 'education', 'career', 'skills', 'hobbies', 'two_factor_code']:
             if field in data:
                 setattr(model, field, data[field])
+        db.session.commit()
+
+    def verify_email(self, user: User) -> None:
+        user.verified_email = True
+        db.session.commit()
+
+    def enable_two_factor(self, user: User) -> None:
+        user.two_factor_enabled = True
+        db.session.commit()
+
+    def disable_two_factor(self, user: User) -> None:
+        user.two_factor_enabled = False
         db.session.commit()
