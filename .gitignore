@@ -8,3 +8,4 @@ certs
 .docker.env
 logs
 sql
+app.db
